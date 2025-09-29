@@ -1,7 +1,7 @@
 name: Test Python Script
 
 on:
-  workflow_dispatch:  # omogućava ručno pokretanje
+  workflow_dispatch:  # ručno pokretanje iz Actions taba
 
 jobs:
   test-job:
@@ -20,6 +20,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 cyrtranslit
+
+      - name: List repo files
+        run: |
+          echo "=== Repo structure ==="
+          ls -R
 
       - name: Run script
         run: |
