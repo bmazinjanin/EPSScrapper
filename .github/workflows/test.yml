@@ -1,15 +1,14 @@
 name: Test Python Script
 
 on:
-  workflow_dispatch:  # ručno pokretanje iz Actions taba
+  workflow_dispatch:
 
 jobs:
   test-job:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Setup Python
         uses: actions/setup-python@v4
@@ -19,13 +18,38 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4 cyrtranslit
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: List repo files
+      - name: Show current dir and files
         run: |
+          echo "=== Current working directory ==="
+          pwd
           echo "=== Repo structure ==="
-          ls -R
+          ls -la
 
-      - name: Run script
+      - name: Run EPS checker (robust debug + run)
         run: |
-          python ./ElectricityRestrictionsByStreet.py
+          echo "=== GITHUB_WORKSPACE ==="
+          echo "$GITHUB_WORKSPACE"
+          echo "--- pwd ---"
+          pwd
+          echo "--- ls -la (current dir) ---"
+          ls -la
+          echo "--- show possible hidden characters in filenames ---"
+          for f in *; do
+            printf "%s -> " "$f"
+            head -c 40 "$f" | xxd -g 1 -l 40
+            echo
+          done
+          echo "--- cat first 200 chars of the python file (if exists) ---"
+          if [ -f "ElectricityRestrictionsByStreet.py" ]; then
+            echo "File exists, showing header:"
+            head -n 20 ElectricityRestrictionsByStreet.py || true
+            echo "--- now running with explicit python interpreter path ---"
+            /usr/bin/python3 ElectricityRestrictionsByStreet.py
+          else
+            echo "ERROR: ElectricityRestrictionsByStreet.py not found in current dir!"
+            echo "Listing again with full tree:"
+            ls -R
+            exit 2
+          fi
