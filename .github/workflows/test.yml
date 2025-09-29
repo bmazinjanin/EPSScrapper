@@ -28,5 +28,5 @@ jobs:
 
       - name: Run script
         run: |
-          python ElectricityRestrictionsByStreet.py
+          python ./ElectricityRestrictionsByStreet.py
 
