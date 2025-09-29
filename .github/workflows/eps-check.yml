@@ -32,4 +32,4 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
         run: |
-          python ElectricityRestrictionsByStreet.py
+          python eps_checker.py
