@@ -1,7 +1,7 @@
 name: Test Python Script
 
 on:
-  workflow_dispatch:  # ručno pokretanje iz Actions taba
+  workflow_dispatch:  # omogućava ručno pokretanje
 
 jobs:
   test-job:
@@ -21,12 +21,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4 cyrtranslit
 
-      - name: List repo files
+      - name: Show current dir and files
         run: |
+          echo "=== Current working directory ==="
+          pwd
           echo "=== Repo structure ==="
           ls -R
 
-      - name: Run script
+      - name: Run EPS checker
         run: |
           python ElectricityRestrictionsByStreet.py
-
