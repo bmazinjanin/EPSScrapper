@@ -28,4 +28,4 @@ jobs:
 
       - name: Run script
         run: |
-          python EPS/ElectricityRestrictionsByStreet.py
+          python ElectricityRestrictionsByStreet.py
