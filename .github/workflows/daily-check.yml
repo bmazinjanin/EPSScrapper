@@ -1,0 +1,54 @@
+name: EPS Daily Checker
+
+on:
+  schedule:
+    # svaki dan u 05:00 UTC → to je 07:00 po Srbiji (UTC+2 kada je letnje vreme)
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}   # i dalje možeš ručno pokrenuti
+
+jobs:
+  run-checker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run EPS checker
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+        run: |
+          python - <<'EOF'
+          import os
+          from eps_checker import search, send_email
+
+          streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva"]
+          all_results = []
+
+          for street in streets:
+              print(f"🔎 Tražim isključenja za: {street}")
+              result = search(street)
+              if result:
+                  all_results.append(f"📍 Ulica: {street}\n{result}")
+
+          if all_results:
+              final_report = "\n\n".join(all_results)
+              print("⚡ Pronađena isključenja:\n", final_report)
+              send_email("⚡ EPS isključenja - dnevni izveštaj", final_report)
+          else:
+              print("✅ Nema planiranih isključenja za zadate ulice.")
+          EOF
