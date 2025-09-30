@@ -24,7 +24,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run EPS checker
+      - name: Run EPS + BVK checker
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -33,22 +33,26 @@ jobs:
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
         run: |
           python - <<'EOF'
-          import os
-          from eps_checker import search, send_email
+          from eps_checker import search_eps, search_bvk, send_email
 
           streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva"]
           all_results = []
 
           for street in streets:
               print(f"🔎 Tražim isključenja za: {street}")
-              result = search(street)
-              if result:
-                  all_results.append(f"📍 Ulica: {street}\n{result}")
+
+              eps_result = search_eps(street)
+              if eps_result:
+                  all_results.append(f"⚡ STRUJA - {street}\n{eps_result}")
+
+              bvk_result = search_bvk(street)
+              if bvk_result:
+                  all_results.append(f"💧 VODA - {street}\n{bvk_result}")
 
           if all_results:
               final_report = "\n\n".join(all_results)
-              print("⚡ Pronađena isključenja:\n", final_report)
-              send_email("⚡ EPS isključenja - dnevni izveštaj", final_report)
+              print("📢 Izveštaj:\n", final_report)
+              send_email("Dnevni izveštaj: EPS/BVK isključenja", final_report)
           else:
               print("✅ Nema planiranih isključenja za zadate ulice.")
           EOF
