@@ -172,7 +172,7 @@ def send_email(subject: str, body: str):
 
 # ===== MAIN =====
 if __name__ == "__main__":
-    streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva"]
+    streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva", "Marijane", "Радмиловића"]
     all_results = []
 
     for street in streets:
