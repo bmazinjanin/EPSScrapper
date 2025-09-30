@@ -2,9 +2,10 @@ name: EPS Daily Checker
 
 on:
   schedule:
-    # svaki dan u 05:00 UTC → to je 07:00 po Srbiji (UTC+2 kada je letnje vreme)
-    - cron: "0 5 * * *"
-  workflow_dispatch: {}   # i dalje možeš ručno pokrenuti
+    # svakih 2h u minuti 0: 00:00, 02:00, 04:00, ...
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {}
+
 
 jobs:
   run-checker:
