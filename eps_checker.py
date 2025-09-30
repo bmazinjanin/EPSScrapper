@@ -189,3 +189,4 @@ if __name__ == "__main__":
         send_email("⚡ EPS/BVK izveštaj", final_report)
     else:
         print("✅ Nema planiranih isključenja struje/vode za tražene ulice.")
+
