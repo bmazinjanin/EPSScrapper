@@ -1,0 +1,51 @@
+name: EPS Manual Checker
+
+on:
+  workflow_dispatch:
+    inputs:
+      street:
+        description: 'Ulica za proveru (latinica ili ćirilica)'
+        required: true
+        default: 'Marijane'
+
+jobs:
+  run-checker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run EPS checker
+        env:
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          EMAIL_TO:   ${{ secrets.EMAIL_TO }}
+        run: |
+          python - <<'EOF'
+          import os
+          from eps_checker import search, send_email
+
+          street = "${{ github.event.inputs.street }}"
+          print(f"🔎 Tražim isključenja za ulicu: {street}")
+
+          result = search(street)
+
+          if result:
+              print("⚡ Pronađena isključenja:\n", result)
+              send_email(f"⚡ EPS isključenje za {street}", result)
+          else:
+              print("✅ Nema planiranih isključenja za ovu ulicu.")
+          EOF
