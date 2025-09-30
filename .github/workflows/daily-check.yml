@@ -36,7 +36,7 @@ jobs:
           import os
           from eps_checker import search, send_email
 
-          streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva"]
+          streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva", "Marijane"]
           all_results = []
 
           for street in streets:
