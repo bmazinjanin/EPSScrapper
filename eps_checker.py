@@ -32,7 +32,8 @@ TARGET_STREETS = [
     "Nikodima",
     "Salvadora",
     "Vlajkovićeva",
-    "Радмиловића"
+    "Радмиловића",
+    "Marijane"
 ]
 
 TIMEOUT = 25
