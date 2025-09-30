@@ -245,9 +245,9 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
 
     # Footer
     html.append("""
-    <div class="small" style="opacity:.7; margin-top:10px;">
-      📎 Automatizovani izveštaj — ako nešto deluje sumnjivo, pošaljite nam print screen i dopišemo parser. 🤖
-    </div>
+    # <div class="small" style="opacity:.7; margin-top:10px;">
+    #   📎 Automatizovani izveštaj — ako nešto deluje sumnjivo, pošaljite nam print screen i dopišemo parser. 🤖
+    # </div>
   </body>
 </html>
 """)
