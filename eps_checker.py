@@ -102,7 +102,7 @@ def send_email(subject, body):
 
 if __name__ == "__main__":
     # primer – pretraži tvoju ulicu
-    q = "Nikole Dok"
+    q = "МАРИЈАНЕ ГРЕГОРАН"
     result = search(q)
 
     if result:
