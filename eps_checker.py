@@ -1,3 +1,7 @@
+import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 import requests
 from bs4 import BeautifulSoup
 import cyrtranslit
@@ -14,10 +18,11 @@ URLS = {
     "sutra": "https://elektrodistribucija.rs/planirana-iskljucenja-beograd/Dan_1_Iskljucenja.htm"
 }
 
+
 def load_data(url):
     """Učitaj i parsiraj HTML tabelu."""
     try:
-        response = requests.get(url, headers=HEADERS)
+        response = requests.get(url, headers=HEADERS, timeout=15)
         response.encoding = "utf-8"
         soup = BeautifulSoup(response.text, "html.parser")
 
@@ -64,12 +69,44 @@ def search(query):
     if results:
         return "\n\n".join(results)
     else:
-        return "✅ Nema planiranih isključenja danas ni sutra."
+        return None
+
+
+def send_email(subject, body):
+    """Pošalji email koristeći SMTP parametre iz GitHub secrets."""
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    email_to = os.getenv("EMAIL_TO")
+
+    if not all([smtp_user, smtp_pass, email_to]):
+        print("⚠️ Nedostaju SMTP kredencijali u secrets!")
+        return
+
+    msg = MIMEMultipart()
+    msg["From"] = smtp_user
+    msg["To"] = email_to
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain", "utf-8"))
+
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        print(f"📧 Email poslat na {email_to}")
+    except Exception as e:
+        print(f"⚠️ Greška pri slanju email-a: {e}")
 
 
 if __name__ == "__main__":
-    while True:
-        q = input("\nUnesi ulicu (latinica ili ćirilica, Enter za kraj): ").strip()
-        if not q:
-            break
-        print(search(q))
+    # primer – pretraži tvoju ulicu
+    q = "Nikole Dok"
+    result = search(q)
+
+    if result:
+        print("⚡ Pronađena isključenja:\n", result)
+        send_email("⚡ EPS isključenje", result)
+    else:
+        print("✅ Nema planiranih isključenja danas ni sutra.")
