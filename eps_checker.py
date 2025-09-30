@@ -164,7 +164,6 @@ def build_subject(eps_hits: List[Dict[str, str]], bvk_hits: List[str]) -> str:
     return f"🚰 Danas {today}: kvarovi / obaveštenja o vodi"
 
 def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets: List[str]) -> str:
-    # mali “brand” header + bedževi
     style = """
       body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial; background:#0b0f14; color:#e6edf3; padding:24px;}
       .card{background:#111826; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px;}
@@ -207,8 +206,7 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
         html.append('<span class="badge ok">🚰 Voda: nema prijavljenih problema</span>')
     html.append("<br><br>")
 
-    # Sekcije
-    # EPS sekcija
+    # EPS
     html.append('<div class="card"><div style="font-weight:600;margin-bottom:6px;">⚡ EPS (struja)</div>')
     if eps_hits:
         html.append('<div class="grid">')
@@ -230,7 +228,7 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
         html.append('<div>✅ Nema planiranih isključenja za tražene ulice.</div>')
     html.append("</div>")
 
-    # BVK sekcija
+    # BVK
     html.append('<div class="card"><div style="font-weight:600;margin-bottom:6px;">🚰 BVK (voda)</div>')
     if bvk_hits:
         html.append('<ul class="list">')
@@ -243,11 +241,8 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
         html.append('<div>✅ Nema prijavljenih isključenja/kvarova vode za tražene ulice.</div>')
     html.append("</div>")
 
-    # Footer
+    # Bez footera
     html.append("""
-    # <div class="small" style="opacity:.7; margin-top:10px;">
-    #   📎 Automatizovani izveštaj — ako nešto deluje sumnjivo, pošaljite nam print screen i dopišemo parser. 🤖
-    # </div>
   </body>
 </html>
 """)
@@ -277,7 +272,6 @@ def build_text_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
     else:
         lines.append("• Nema prijavljenih isključenja/kvarova vode za tražene ulice.")
     lines.append("")
-    lines.append("— Automatizovani izveštaj 🤖")
     return "\n".join(lines)
 
 def send_email(subject: str, html_body: str, text_body: str):
@@ -296,7 +290,6 @@ def send_email(subject: str, html_body: str, text_body: str):
     msg["To"] = email_to
     msg["Subject"] = subject
 
-    # plain text (fallback) + HTML
     part_text = MIMEText(text_body, "plain", "utf-8")
     part_html = MIMEText(html_body, "html", "utf-8")
     msg.attach(part_text)
