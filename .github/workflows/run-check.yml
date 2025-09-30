@@ -1,12 +1,10 @@
-name: EPS Manual Checker
+name: EPS + BVK Daily Checker
 
 on:
-  workflow_dispatch:
-    inputs:
-      street:
-        description: 'Ulica za proveru (latinica ili ćirilica)'
-        required: true
-        default: 'Marijane'
+  schedule:
+    # svaki dan u 05:00 UTC (07:00 u Srbiji, dok je UTC+2 letnje vreme)
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}   # i dalje možeš ručno pokrenuti
 
 jobs:
   run-checker:
@@ -24,9 +22,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install requests beautifulsoup4 cyrtranslit
 
-      - name: Run EPS checker
+      - name: Run EPS + BVK checker
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
@@ -34,18 +32,4 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO }}
         run: |
-          python - <<'EOF'
-          import os
-          from eps_checker import search, send_email
-
-          street = "${{ github.event.inputs.street }}"
-          print(f"🔎 Tražim isključenja za ulicu: {street}")
-
-          result = search(street)
-
-          if result:
-              print("⚡ Pronađena isključenja:\n", result)
-              send_email(f"⚡ EPS isključenje za {street}", result)
-          else:
-              print("✅ Nema planiranih isključenja za ovu ulicu.")
-          EOF
+          python eps_checker.py

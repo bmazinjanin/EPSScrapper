@@ -1,103 +1,31 @@
 import os
+import re
 import smtplib
+import unicodedata
+from datetime import datetime, timedelta
 from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+from typing import List, Tuple
+
 import requests
 from bs4 import BeautifulSoup
 import cyrtranslit
-from datetime import datetime, timedelta
-import unicodedata
-import re
 
-# ========================
-# EPS KONFIG
-# ========================
+# ===== KONFIGURACIJA =====
+EPS_URLS = {
+    "danas": "https://elektrodistribucija.rs/planirana-iskljucenja-beograd/Dan_0_Iskljucenja.htm",
+    "sutra": "https://elektrodistribucija.rs/planirana-iskljucenja-beograd/Dan_1_Iskljucenja.htm",
+}
+BVK_URL = "https://www.bvk.rs/kvarovi-na-mrezi/#toggle-id-1"
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
                   "AppleWebKit/537.36 (KHTML, like Gecko) "
                   "Chrome/124.0.0.0 Safari/537.36"
 }
 
-EPS_URLS = {
-    "danas": "https://elektrodistribucija.rs/planirana-iskljucenja-beograd/Dan_0_Iskljucenja.htm",
-    "sutra": "https://elektrodistribucija.rs/planirana-iskljucenja-beograd/Dan_1_Iskljucenja.htm"
-}
+TIMEOUT = 20
 
-# ========================
-# BVK KONFIG
-# ========================
-BVK_URL = "https://www.bvk.rs/kvarovi-na-mrezi/#toggle-id-1"
-TARGET_STREETS = [
-    "Sestara",
-    "Nikodima",
-    "Salvadora",
-    "Vlajkovićeva",
-    "Радмиловића",
-    "Marijane"
-]
-
-TIMEOUT = 25
-
-# ========================
-# EMAIL KONFIG
-# ========================
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASS = os.getenv("SMTP_PASS")
-EMAIL_TO = os.getenv("EMAIL_TO")
-
-# ========================
-# EPS FUNKCIJE
-# ========================
-
-def load_eps_data(url):
-    try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
-        response.encoding = "utf-8"
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        tables = soup.find_all("table")
-        if len(tables) < 2:
-            return []
-
-        rows = tables[1].find_all("tr")
-        data = []
-        for row in rows[1:]:
-            cols = row.find_all("td")
-            if len(cols) == 3:
-                opstina = cols[0].get_text(strip=True)
-                vreme = cols[1].get_text(strip=True)
-                ulice = cols[2].get_text(" ", strip=True)
-                data.append((opstina, vreme, ulice))
-        return data
-    except Exception as e:
-        print(f"⚠️ EPS greška: {e}")
-        return []
-
-def search_eps(query):
-    if all("a" <= ch.lower() <= "z" or ch.isspace() for ch in query):
-        target = cyrtranslit.to_cyrillic(query, "sr")
-    else:
-        target = query
-
-    results = []
-    for day, url in EPS_URLS.items():
-        data = load_eps_data(url)
-        for opstina, vreme, ulice in data:
-            if target.upper() in ulice.upper():
-                if day == "danas":
-                    datum = datetime.now().strftime("%Y-%m-%d")
-                    results.append(f"📅 DANAS ({datum}): {opstina} | {vreme} | {ulice}\n🔗 Izvor: {url}")
-                else:
-                    datum = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-                    results.append(f"📅 SUTRA ({datum}): {opstina} | {vreme} | {ulice}\n🔗 Izvor: {url}")
-    return results
-
-# ========================
-# BVK FUNKCIJE
-# ========================
-
+# ===== POMOĆNE FUNKCIJE =====
 def strip_diacritics(s: str) -> str:
     norm = unicodedata.normalize("NFD", s)
     return "".join(ch for ch in norm if unicodedata.category(ch) != "Mn")
@@ -120,18 +48,63 @@ def norm(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-def fetch_bvk_items(url: str):
-    resp = requests.get(url, timeout=TIMEOUT, headers={"User-Agent": "Mozilla/5.0"})
+# ===== EPS STRUJA =====
+def load_eps_data(url: str):
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        resp.encoding = "utf-8"
+        soup = BeautifulSoup(resp.text, "html.parser")
+
+        tables = soup.find_all("table")
+        if len(tables) < 2:
+            return []
+
+        rows = tables[1].find_all("tr")
+        data = []
+        for row in rows[1:]:
+            cols = row.find_all("td")
+            if len(cols) == 3:
+                opstina = cols[0].get_text(strip=True)
+                vreme = cols[1].get_text(strip=True)
+                ulice = cols[2].get_text(" ", strip=True)
+                data.append((opstina, vreme, ulice))
+        return data
+    except Exception as e:
+        print(f"⚠️ EPS greška: {e}")
+        return []
+
+def search_eps(query: str):
+    # latinica -> ćirilica ako treba
+    if all("a" <= ch.lower() <= "z" or ch.isspace() for ch in query):
+        target = cyrtranslit.to_cyrillic(query, "sr")
+    else:
+        target = query
+
+    results = []
+    for day, url in EPS_URLS.items():
+        data = load_eps_data(url)
+        for opstina, vreme, ulice in data:
+            if target.upper() in ulice.upper():
+                if day == "danas":
+                    datum = datetime.now().strftime("%Y-%m-%d")
+                else:
+                    datum = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+                results.append(f"⚡ {day.upper()} ({datum}): {opstina} | {vreme} | {ulice}\nIzvor: {url}")
+
+    return "\n\n".join(results) if results else None
+
+# ===== BVK VODA =====
+def fetch_bvk_items(url: str) -> List[str]:
+    resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
 
     all_lis = [li.get_text(" ", strip=True) for li in soup.find_all("li")]
-
     items = []
     for li_text in all_lis:
         if "Распоред аутоцистерни" in li_text or "Raspored autocisterni" in li_text:
             break
-        if any(bad in li_text.lower() for bad in ["share", "facebook", "twitter"]):
+        if any(bad in li_text.lower() for bad in ["share", "facebook", "twitter", "whatsapp"]):
             continue
         items.append(li_text)
 
@@ -139,15 +112,13 @@ def fetch_bvk_items(url: str):
         text = soup.get_text("\n", strip=True)
         m = re.search(r"(Без воде су.*?)(Распоред аутоцистерни|$)", text, flags=re.S | re.I)
         if m:
-            block = m.group(1)
-            for line in block.splitlines():
+            for line in m.group(1).splitlines():
                 line = line.strip("•*- \t")
                 if len(line) > 3:
                     items.append(line)
-
     return items
 
-def match_bvk(items, targets):
+def match_streets(items: List[str], targets: List[str]) -> List[Tuple[str, str]]:
     norm_targets = [norm(t) for t in targets]
     hits = []
     for raw in items:
@@ -163,62 +134,58 @@ def match_bvk(items, targets):
             unique.append(k)
     return unique
 
-def search_bvk():
-    try:
-        items = fetch_bvk_items(BVK_URL)
-    except Exception as e:
-        print(f"❌ BVK greška: {e}")
-        return []
-
-    hits = match_bvk(items, TARGET_STREETS)
-    results = []
+def search_bvk(query: str):
+    items = fetch_bvk_items(BVK_URL)
+    hits = match_streets(items, [query])
+    if not hits:
+        return None
+    lines = []
     for street, raw in hits:
-        results.append(f"- {street} → {raw}\n🔗 Izvor: {BVK_URL}")
-    return results
+        lines.append(f"🚰 {street} → {raw}\nIzvor: {BVK_URL}")
+    return "\n".join(lines)
 
-# ========================
-# EMAIL
-# ========================
+# ===== EMAIL =====
+def send_email(subject: str, body: str):
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_pass = os.getenv("SMTP_PASS")
+    email_to = os.getenv("EMAIL_TO")
 
-def send_email(subject, body):
-    if not all([SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, EMAIL_TO]):
-        print("⚠️ Nedostaju SMTP parametri.")
+    if not all([smtp_user, smtp_pass, email_to]):
+        print("⚠️ Nedostaju SMTP kredencijali.")
         return
-    msg = MIMEMultipart()
-    msg["From"] = SMTP_USER
-    msg["To"] = EMAIL_TO
+
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["From"] = smtp_user
+    msg["To"] = email_to
     msg["Subject"] = subject
-    msg.attach(MIMEText(body, "plain", "utf-8"))
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-    print(f"📧 Email poslat na {EMAIL_TO}")
 
-# ========================
-# MAIN
-# ========================
+    try:
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+        print(f"📧 Email poslat na {email_to}")
+    except Exception as e:
+        print(f"⚠️ Greška pri slanju email-a: {e}")
 
+# ===== MAIN =====
 if __name__ == "__main__":
-    final_parts = []
+    streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva"]
+    all_results = []
 
-    # EPS
-    eps_results = []
-    for street in TARGET_STREETS:
-        res = search_eps(street)
-        if res:
-            eps_results.append(f"🔌 Struja – {street}:\n" + "\n".join(res))
-    if eps_results:
-        final_parts.append("=== EPS Isključenja ===\n" + "\n\n".join(eps_results))
+    for street in streets:
+        eps_res = search_eps(street)
+        bvk_res = search_bvk(street)
+        if eps_res:
+            all_results.append(f"=== EPS: {street} ===\n{eps_res}")
+        if bvk_res:
+            all_results.append(f"=== BVK: {street} ===\n{bvk_res}")
 
-    # BVK
-    bvk_results = search_bvk()
-    if bvk_results:
-        final_parts.append("=== BVK Bez vode ===\n" + "\n".join(bvk_results))
-
-    if final_parts:
-        body = "\n\n".join(final_parts)
-        print("⚡ Rezultati:\n", body)
-        send_email("⚠️ Isključenja (struja/voda)", body)
+    if all_results:
+        final_report = "\n\n".join(all_results)
+        print("✅ Pronađeni rezultati:\n", final_report)
+        send_email("⚡ EPS/BVK izveštaj", final_report)
     else:
-        print("✅ Nema isključenja ni kvarova za tvoje ulice.")
+        print("✅ Nema planiranih isključenja struje/vode za tražene ulice.")
