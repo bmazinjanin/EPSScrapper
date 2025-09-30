@@ -2,13 +2,14 @@ import os
 import re
 import smtplib
 import unicodedata
+from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import List, Tuple
+
 import requests
 from bs4 import BeautifulSoup
 import cyrtranslit
-from datetime import datetime, timedelta
 
 # ===== KONFIG =====
 EPS_URLS = {
@@ -17,7 +18,7 @@ EPS_URLS = {
 }
 BVK_URL = "https://www.bvk.rs/kvarovi-na-mrezi/#toggle-id-1"
 
-TARGET_STREETS = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva", "Marijane", "Радмиловића"]
+TARGET_STREETS = ["Сестара", "Никодима", "Салвадора", "Влајковићева", "Маријане", "Радмиловића"]
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
@@ -27,23 +28,27 @@ EMAIL_FROM = os.getenv("EMAIL_FROM", SMTP_USER)
 EMAIL_TO = os.getenv("EMAIL_TO", "")
 
 TIMEOUT = 20
-
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                  "AppleWebKit/537.36 (KHTML, like Gecko) "
+                  "Chrome/124.0.0.0 Safari/537.36"
+}
 
 # ===== HELPERI =====
 def strip_diacritics(s: str) -> str:
     norm = unicodedata.normalize("NFD", s)
     return "".join(ch for ch in norm if unicodedata.category(ch) != "Mn")
 
-
 def tolatin(s: str) -> str:
     table = str.maketrans({
-        "А": "A", "Б": "B", "В": "V", "Г": "G", "Д": "D", "Ђ": "Dj", "Е": "E", "Ж": "Z", "З": "Z", "И": "I",
-        "Ј": "J", "К": "K", "Л": "L", "Љ": "Lj", "М": "M", "Н": "N", "Њ": "Nj", "О": "O", "П": "P", "Р": "R",
-        "С": "S", "Т": "T", "Ћ": "C", "У": "U", "Ф": "F", "Х": "H", "Ц": "C", "Ч": "C", "Џ": "Dz", "Ш": "S",
-        "ђ": "dj", "ж": "z", "ћ": "c", "ч": "c", "џ": "dz", "š": "s", "ž": "z"
+        "А": "A","Б": "B","В": "V","Г": "G","Д": "D","Ђ": "Dj","Е": "E","Ж": "Z","З": "Z","И": "I",
+        "Ј": "J","К": "K","Л": "L","Љ": "Lj","М": "M","Н": "N","Њ": "Nj","О": "O","П": "P","Р": "R",
+        "С": "S","Т": "T","Ћ": "C","У": "U","Ф": "F","Х": "H","Ц": "C","Ч": "C","Џ": "Dz","Ш": "S",
+        "а": "a","б": "b","в": "v","г": "g","д": "d","ђ": "dj","е": "e","ж": "z","з": "z","и": "i",
+        "ј": "j","к": "k","л": "l","љ": "lj","м": "m","н": "n","њ": "nj","о": "o","п": "p","р": "r",
+        "с": "s","т": "t","ћ": "c","у": "u","ф": "f","х": "h","ц": "c","ч": "c","џ": "dz","ш": "s",
     })
     return s.translate(table)
-
 
 def norm(s: str) -> str:
     s = tolatin(s)
@@ -52,11 +57,10 @@ def norm(s: str) -> str:
     s = re.sub(r"\s+", " ", s).strip()
     return s
 
-
-# ===== EPS =====
-def load_eps(url):
+# ===== EPS STRUJA =====
+def load_eps(url: str):
     try:
-        r = requests.get(url, timeout=TIMEOUT)
+        r = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
         r.encoding = "utf-8"
         soup = BeautifulSoup(r.text, "html.parser")
         tables = soup.find_all("table")
@@ -76,7 +80,6 @@ def load_eps(url):
         print("⚠️ EPS error:", e)
         return []
 
-
 def search_eps(street: str) -> List[str]:
     results = []
     target = cyrtranslit.to_cyrillic(street, "sr") if all("a" <= ch.lower() <= "z" or ch.isspace() for ch in street) else street
@@ -84,15 +87,15 @@ def search_eps(street: str) -> List[str]:
         for opstina, vreme, ulice in load_eps(url):
             if target.upper() in ulice.upper():
                 datum = datetime.now().strftime("%Y-%m-%d") if day == "danas" else (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-                results.append(f"📅 {day.upper()} ({datum}): {opstina} | {vreme} | {ulice}")
+                results.append(f"{day.upper()} ({datum}): {opstina} | {vreme} | {ulice} (📎 {url})")
     return results
 
-
-# ===== BVK =====
+# ===== BVK VODA =====
 def fetch_bvk_items(url: str) -> List[str]:
-    resp = requests.get(url, timeout=TIMEOUT)
+    resp = requests.get(url, timeout=TIMEOUT, headers=HEADERS)
     resp.raise_for_status()
     soup = BeautifulSoup(resp.text, "html.parser")
+
     all_lis = [li.get_text(" ", strip=True) for li in soup.find_all("li")]
     items = []
     for li_text in all_lis:
@@ -101,17 +104,25 @@ def fetch_bvk_items(url: str) -> List[str]:
         if any(bad in li_text.lower() for bad in ["share", "facebook", "twitter", "whatsapp"]):
             continue
         items.append(li_text)
-    return items
 
+    if not items:
+        text = soup.get_text("\n", strip=True)
+        m = re.search(r"(Без воде су.*?)(Распоред аутоцистерни|$)", text, flags=re.S | re.I)
+        if m:
+            for line in m.group(1).splitlines():
+                line = line.strip("•*- \t")
+                if len(line) > 3:
+                    items.append(line)
+    return items
 
 def search_bvk(street: str) -> List[str]:
     hits = []
     items = fetch_bvk_items(BVK_URL)
+    target_norm = norm(street)
     for raw in items:
-        if norm(street) in norm(raw):
+        if target_norm in norm(raw):
             hits.append(f"{street} → {raw} (📎 {BVK_URL})")
     return hits
-
 
 # ===== EMAIL =====
 def send_email(subject: str, body: str):
@@ -124,9 +135,7 @@ def send_email(subject: str, body: str):
     msg["From"] = EMAIL_FROM
     msg["To"] = EMAIL_TO
 
-    # PRE PRIPREMIMO HTML
     body_html = body.replace("\n", "<br>")
-
     html_body = f"""
     <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
@@ -150,7 +159,6 @@ def send_email(subject: str, body: str):
         server.send_message(msg)
 
     print(f"📧 Poslat email na {EMAIL_TO}")
-
 
 # ===== MAIN =====
 if __name__ == "__main__":
