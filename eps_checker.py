@@ -124,11 +124,14 @@ def send_email(subject: str, body: str):
     msg["From"] = EMAIL_FROM
     msg["To"] = EMAIL_TO
 
+    # PRE PRIPREMIMO HTML
+    body_html = body.replace("\n", "<br>")
+
     html_body = f"""
     <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
         <h2>{subject}</h2>
-        <p>{body.replace("\n", "<br>")}</p>
+        <p>{body_html}</p>
         <hr>
         <p style="font-size:12px; color:#777;">
           📡 Automatski izveštaj sa EPS & BVK<br>
