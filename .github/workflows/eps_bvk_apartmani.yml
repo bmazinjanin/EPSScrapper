@@ -32,4 +32,4 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           EMAIL_TO:   ${{ secrets.EMAIL_TO_SANJA }}
         run: |
-          python eps_checker_apartmani.py
+          python apartmani_checker.py
