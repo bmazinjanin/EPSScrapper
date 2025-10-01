@@ -154,7 +154,11 @@ def build_html_body(results: dict) -> str:
     </div>
 """]
 
+    # Dodajemo SAMO one apartmane gde ima pogodaka
     for adresa, data in results.items():
+        if not data["eps"] and not data["bvk"]:
+            continue  # preskačemo ceo apartman ako nema ništa
+
         html.append(f"""
         <div style="background-color:#111826 !important; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px; color:#e6edf3 !important;">
           <div style="font-weight:600; margin-bottom:6px; font-size:16px; color:#ff6b6b !important;">🏠 Okolina: {adresa}</div>
@@ -171,17 +175,12 @@ def build_html_body(results: dict) -> str:
                     <div><a href="{h['url']}" style="color:#93c5fd !important;">izvor</a></div>
                   </div>
                 """)
-        else:
-            html.append('<div style="color:#34d399 !important; margin-bottom:8px;">✅ Nema isključenja struje u okolini.</div>')
-
         # BVK deo
         if data["bvk"]:
             html.append('<div style="font-weight:600; margin-top:10px; margin-bottom:6px; color:#f59e0b !important;">🚰 BVK kvarovi/radovi:</div><ul>')
             for raw in data["bvk"]:
                 html.append(f'<li style="color:#e6edf3 !important;">{raw} <a href="{BVK_URL}" style="color:#93c5fd !important;">izvor</a></li>')
             html.append('</ul>')
-        else:
-            html.append('<div style="color:#34d399 !important; margin-top:8px;">✅ Nema prijavljenih kvarova vode u okolini.</div>')
 
         html.append("</div>")  # zatvaranje card-a za adresu
 
