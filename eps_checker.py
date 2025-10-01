@@ -288,6 +288,7 @@ if __name__ == "__main__":
         eps_hits_all.extend(search_eps_hits(street))
         bvk_hits_all.extend(search_bvk_hits(street))
 
+    # uniq BVK linije
     bvk_hits_all = list(dict.fromkeys(bvk_hits_all))
 
     subject = build_subject(eps_hits_all, bvk_hits_all)
@@ -295,8 +296,8 @@ if __name__ == "__main__":
     text_body = build_text_body(eps_hits_all, bvk_hits_all, streets)
 
     if not eps_hits_all and not bvk_hits_all:
-        print("✅ Nema planiranih isključenja struje/vode za tražene ulice.")
+        print("📭 Nema pogodaka (struja/voda) — email NEĆE biti poslat.")
+        # ništa dalje (po želji: sys.exit(0))
     else:
-        print("✅ Pronađeni rezultati (slanje email-a)…")
-
-    send_email(subject, html_body, text_body)
+        print("✅ Pronađeni rezultati — šaljem email…")
+        send_email(subject, html_body, text_body)
