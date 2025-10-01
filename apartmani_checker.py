@@ -34,8 +34,8 @@ ADRESNI_KLASTERI = {
         "Makedonska",
         "Nusiceva",
         "Vlajkoviceva",
-        "Decanska",
-        "ДРАГОСЛАВА"
+        "Decanska"
+
     ],
     "Kapetan-Misina 4": [
         "Kapetan-Misina",
@@ -46,8 +46,8 @@ ADRESNI_KLASTERI = {
         "Studentski trg",
         "Simina",
         "Knez Mihailova",
-        "Kralja Petra",
-        "Жоржа"
+        "Kralja Petra"
+
     ],
     "Bulevar Despota Stefana 10": [
         "Bulevar Despota Stefana",
