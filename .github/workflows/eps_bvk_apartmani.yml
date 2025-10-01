@@ -2,9 +2,8 @@ name: EPS + BVK Apartmani Checker
 
 on:
   schedule:
-    # svaki dan u 05:10 UTC (07:10 u Srbiji, dok je UTC+2 letnje vreme)
-    - cron: "10 5 * * *"
-  workflow_dispatch: {}   # možeš pokrenuti i ručno
+    - cron: "0 */2 * * *"   # svaka 2 sata (UTC)
+  workflow_dispatch: {}      # i dalje možeš ručno pokrenuti
 
 jobs:
   run-checker-apartmani:
