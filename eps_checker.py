@@ -153,7 +153,7 @@ def build_subject(eps_hits: List[Dict[str, str]], bvk_hits: List[str]) -> str:
     today = datetime.now().strftime("%Y-%m-%d")
 
     if not has_eps and not has_bvk:
-        return f"🎉 Danas {today}: nema ni struje ni vode — sve radi!"
+        return f"🎉 Danas {today}: nema problema sa strujom ni vodom — sve radi!"
     if has_eps and has_bvk:
         return f"⚡🚰 Danas {today}: isključenja struje + problemi sa vodom"
     if has_eps and not has_bvk:
