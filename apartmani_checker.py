@@ -140,27 +140,51 @@ def search_bvk_hits(streets: List[str]) -> List[str]:
     return list(dict.fromkeys(hits))
 
 # ===== EMAIL =====
-def build_html_body(results: Dict[str, Dict[str, List[str]]]) -> str:
-    html = ["""<html><body style="font-family:Arial,sans-serif;background:#0b0f14;color:#e6edf3;padding:20px;">"""]
-    html.append(f"<h2 style='color:#93c5fd'>📬 Apartmani — dnevni izveštaj ({datetime.now().strftime('%d.%m.%Y')})</h2>")
+def build_html_body(results: dict) -> str:
+    today = datetime.now().strftime("%A, %d.%m.%Y.")
+
+    html = [f"""
+<!doctype html>
+<html>
+  <head><meta charset="utf-8"></head>
+  <body style="font-family:Arial, sans-serif; background-color:#0b0f14 !important; color:#e6edf3 !important; padding:24px;">
+    <div style="background-color:#111826 !important; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px;">
+      <div style="font-size:18px; font-weight:600; margin-bottom:6px; color:#93c5fd !important;">📬 Apartmani — dnevni izveštaj ({datetime.now().strftime("%d.%m.%Y")})</div>
+      <div style="opacity:.8; font-size:12px; color:#e6edf3 !important;">{today}</div>
+    </div>
+"""]
+
     for adresa, data in results.items():
-        html.append(f"<div style='background:#111826;padding:15px;border-radius:10px;margin-bottom:10px;'>")
-        html.append(f"<h3 style='margin:0 0 8px 0;'>🏠 Okolina: {adresa}</h3>")
+        html.append(f"""
+        <div style="background-color:#111826 !important; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px; color:#e6edf3 !important;">
+          <div style="font-weight:600; margin-bottom:6px; font-size:16px; color:#ff6b6b !important;">🏠 Okolina: {adresa}</div>
+        """)
+
+        # EPS deo
         if data["eps"]:
-            html.append("<b style='color:#f97373'>⚡ EPS isključenja:</b><ul>")
-            for hit in data["eps"]:
-                html.append(f"<li>Ulica pogođena: <b>{hit['match']}</b><br>{hit['date']} ({hit['day']}), {hit['opstina']} — {hit['vreme']} (<a style='color:#93c5fd' href='{hit['url']}'>izvor</a>)</li>")
-            html.append("</ul>")
+            html.append('<div style="font-weight:600; margin-bottom:6px; color:#f97373 !important;">⚡ EPS isključenja:</div>')
+            for h in data["eps"]:
+                html.append(f"""
+                  <div style="margin-bottom:8px; color:#e6edf3 !important;">
+                    <div><strong>Ulica pogođena:</strong> {h['match']}</div>
+                    <div>{h['date']} ({h['day']}), {h['opstina']} — {h['vreme']}</div>
+                    <div><a href="{h['url']}" style="color:#93c5fd !important;">izvor</a></div>
+                  </div>
+                """)
         else:
-            html.append("<div style='color:#34d399'>✅ Nema isključenja struje u okolini.</div>")
+            html.append('<div style="color:#34d399 !important; margin-bottom:8px;">✅ Nema isključenja struje u okolini.</div>')
+
+        # BVK deo
         if data["bvk"]:
-            html.append("<b style='color:#f59e0b'>🚰 BVK kvarovi/radovi:</b><ul>")
-            for hit in data["bvk"]:
-                html.append(f"<li>{hit} (<a style='color:#93c5fd' href='{BVK_URL}'>izvor</a>)</li>")
-            html.append("</ul>")
+            html.append('<div style="font-weight:600; margin-top:10px; margin-bottom:6px; color:#f59e0b !important;">🚰 BVK kvarovi/radovi:</div><ul>')
+            for raw in data["bvk"]:
+                html.append(f'<li style="color:#e6edf3 !important;">{raw} <a href="{BVK_URL}" style="color:#93c5fd !important;">izvor</a></li>')
+            html.append('</ul>')
         else:
-            html.append("<div style='color:#34d399'>✅ Nema prijavljenih kvarova vode u okolini.</div>")
-        html.append("</div>")
+            html.append('<div style="color:#34d399 !important; margin-top:8px;">✅ Nema prijavljenih kvarova vode u okolini.</div>')
+
+        html.append("</div>")  # zatvaranje card-a za adresu
+
     html.append("</body></html>")
     return "".join(html)
 
