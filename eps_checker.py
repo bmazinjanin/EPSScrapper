@@ -161,7 +161,7 @@ def build_subject(eps_hits: List[Dict[str, str]], bvk_hits: List[str]) -> str:
     return f"🚰 Danas {today}: kvarovi / obaveštenja o vodi"
 
 def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets: List[str]) -> str:
-    header_joke = "☕ Ako danas nestane kofeina — bar neće struje. Šalimo se. 🙂"
+    header_joke = "☕ Ako danas nestane struje — bar neće kofeina. 🙂"
     if not eps_hits and not bvk_hits:
         header_joke = "🎊 Sve radi! Idealno vreme da uključimo mašinu za veš *i* espreso."
 
@@ -178,7 +178,7 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
 """]
 
     if eps_hits:
-        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #5b2121; background:#1a0e0e; color:#f97373;">⚡ Struja: pronađeni pogoci</div>')
+        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #5b2121; background:#1a0e0e; color:#f97373;">⚡ Struja: pogodjene ulice</div>')
     else:
         html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #1f513f; background:#0e1c16; color:#34d399;">⚡ Struja: bez planiranih isključenja</div>')
     if bvk_hits:
