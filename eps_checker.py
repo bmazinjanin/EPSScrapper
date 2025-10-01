@@ -279,7 +279,7 @@ def send_email(subject: str, html_body: str, text_body: str):
 
 # ===== MAIN =====
 if __name__ == "__main__":
-    streets = ["Sestara", "Nikodima", "Salvadora", "Vlajkovićeva", "Marijane", "Радмиловића"]
+    streets = ["Sestara", "Nikodima", "Salvadora"]
 
     eps_hits_all: List[Dict[str, str]] = []
     bvk_hits_all: List[str] = []
