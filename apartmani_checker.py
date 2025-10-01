@@ -35,7 +35,7 @@ ADRESNI_KLASTERI = {
         "Nusiceva",
         "Vlajkoviceva",
         "Decanska",
-        "Zrenjaninski"
+        "ДРАГОСЛАВА"
     ],
     "Kapetan-Misina 4": [
         "Kapetan-Misina",
@@ -47,7 +47,7 @@ ADRESNI_KLASTERI = {
         "Simina",
         "Knez Mihailova",
         "Kralja Petra",
-        "Terazije"
+        "Жоржа"
     ],
     "Bulevar Despota Stefana 10": [
         "Bulevar Despota Stefana",
@@ -164,34 +164,74 @@ def build_html_body(results: Dict[str, Dict[str, List[str]]]) -> str:
     html.append("</body></html>")
     return "".join(html)
 
-def send_email(subject: str, html_body: str):
+def send_email(subject: str, html_body: str, text_body: str = ""):
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_user = os.getenv("SMTP_USER")
     smtp_pass = os.getenv("SMTP_PASS")
-    email_to_raw = os.getenv("EMAIL_TO", "")
-    recipients = [a.strip() for a in re.split(r"[;,]", email_to_raw) if a.strip()]
+    email_to = os.getenv("EMAIL_TO")
 
-    msg = MIMEMultipart("alternative")
-    msg["From"] = smtp_user
-    msg["To"] = ", ".join(recipients)
-    msg["Subject"] = subject
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
+    if not all([smtp_user, smtp_pass, email_to]):
+        print("⚠️ Nedostaju SMTP kredencijali ili EMAIL_TO.")
+        return
 
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.sendmail(smtp_user, recipients, msg.as_string())
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["From"] = smtp_user
+        msg["To"] = email_to
+        msg["Subject"] = subject
+
+        if text_body:
+            msg.attach(MIMEText(text_body, "plain", "utf-8"))
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+
+        print(f"📧 Email poslat na {email_to} • Subject: {subject}")
+
+    except Exception as e:
+        # Ovde hvatamo sve SMTP greške i NE prekidamo program
+        print(f"⚠️ Greška pri slanju email-a: {e}")
 
 # ===== MAIN =====
 if __name__ == "__main__":
     results = {}
+    ukupno_eps = 0
+    ukupno_bvk = 0
+
     for adresa, streets in ADRESNI_KLASTERI.items():
         eps_hits = search_eps_hits(streets)
         bvk_hits = search_bvk_hits(streets)
         results[adresa] = {"eps": eps_hits, "bvk": bvk_hits}
+        ukupno_eps += len(eps_hits)
+        ukupno_bvk += len(bvk_hits)
 
-    subject = f"📬 Apartmani — izveštaj {datetime.now().strftime('%Y-%m-%d')}"
-    html_body = build_html_body(results)
-    send_email(subject, html_body)
-    print("📧 Poslat izveštaj za apartmane.")
+    # ---- PRINT NA KONZOLU ----
+    print("\n===== REZIME =====")
+    for adresa, data in results.items():
+        print(f"\n🏠 Okolina: {adresa}")
+        if data["eps"]:
+            print("  ⚡ EPS isključenja:")
+            for hit in data["eps"]:
+                print(f"    - {hit['match']} | {hit['date']} ({hit['day']}) | {hit['opstina']} | {hit['vreme']}")
+        else:
+            print("  ✅ Nema isključenja struje")
+        if data["bvk"]:
+            print("  🚰 BVK kvarovi/radovi:")
+            for hit in data["bvk"]:
+                print(f"    - {hit}")
+        else:
+            print("  ✅ Nema prijavljenih kvarova vode")
+    print("\n===== KRAJ REZIMEA =====\n")
+
+    # ---- EMAIL SAMO AKO IMA NEŠTO ----
+    if ukupno_eps == 0 and ukupno_bvk == 0:
+        print("📭 Nema pogodaka (struja/voda) — email neće biti poslat.")
+    else:
+        subject = f"📬 Apartmani — izveštaj {datetime.now().strftime('%Y-%m-%d')}"
+        html_body = build_html_body(results)
+        send_email(subject, html_body)
+
