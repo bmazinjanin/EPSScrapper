@@ -3,7 +3,7 @@ name: EPS + BVK Daily Checker
 on:
   schedule:
     # svaki dan u 05:00 UTC (07:00 u Srbiji, dok je UTC+2 letnje vreme)
-    - cron: "0 5 * * *"
+    - cron: "0 */2 * * *"   # svaka 2 sata (UTC)
   workflow_dispatch: {}   # i dalje možeš ručno pokrenuti
 
 jobs:
