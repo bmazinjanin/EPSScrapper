@@ -75,7 +75,6 @@ def load_eps_data(url: str):
         return []
 
 def search_eps_hits(query: str) -> List[Dict[str, str]]:
-    # ako je latinica -> prebaci na ćirilicu
     if all("a" <= ch.lower() <= "z" or ch.isspace() for ch in query):
         target = cyrtranslit.to_cyrillic(query, "sr")
     else:
@@ -118,7 +117,7 @@ def fetch_bvk_items(url: str) -> List[str]:
 
     if not items:
         text = soup.get_text("\n", strip=True)
-        m = re.search(r"(Без воде су.*?)(Распоред аутоцистерни|$)", text, flags=re.S | re.I)
+        m = re.search(r"(Без воде су.*?)(Рaspored аутоцистерни|$)", text, flags=re.S | re.I)
         if m:
             for line in m.group(1).splitlines():
                 line = line.strip("•*- \t")
@@ -134,7 +133,6 @@ def match_streets(items: List[str], targets: List[str]) -> List[Tuple[str, str]]
         for tgt_raw, tgt in zip(targets, norm_targets):
             if tgt and tgt in nline:
                 hits.append((tgt_raw, raw))
-    # uniq
     unique = []
     seen = set()
     for k in hits:
@@ -160,25 +158,9 @@ def build_subject(eps_hits: List[Dict[str, str]], bvk_hits: List[str]) -> str:
         return f"⚡🚰 Danas {today}: isključenja struje + problemi sa vodom"
     if has_eps and not has_bvk:
         return f"⚡ Danas {today}: planirana isključenja struje"
-    # only water
     return f"🚰 Danas {today}: kvarovi / obaveštenja o vodi"
 
 def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets: List[str]) -> str:
-    style = """
-      body{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,Arial; background:#0b0f14; color:#e6edf3; padding:24px;}
-      .card{background:#111826; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px;}
-      .badge{display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #263241; background:#0f1620;}
-      .ok{color:#34d399; border-color:#1f513f; background:#0e1c16;}
-      .warn{color:#f59e0b; border-color:#5a441a; background:#1a150a;}
-      .danger{color:#f97373; border-color:#5b2121; background:#1a0e0e;}
-      .small{opacity:.8; font-size:12px;}
-      .list{margin:0; padding-left:18px;}
-      .pill{display:inline-block; font-size:12px; padding:5px 10px; border-radius:999px; background:#1a2432; border:1px solid #243244; margin:2px 6px 2px 0;}
-      a{color:#93c5fd; text-decoration:none} a:hover{text-decoration:underline;}
-      .grid{display:grid; grid-template-columns:1fr; gap:12px;}
-      @media(min-width:700px){.grid{grid-template-columns:1fr 1fr;}}
-    """
-
     header_joke = "☕ Ako danas nestane kofeina — bar neće struje. Šalimo se. 🙂"
     if not eps_hits and not bvk_hits:
         header_joke = "🎊 Sve radi! Idealno vreme da uključimo mašinu za veš *i* espreso."
@@ -186,66 +168,61 @@ def build_html_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
     html = [f"""\
 <!doctype html>
 <html>
-  <head><meta charset="utf-8"><meta name="color-scheme" content="dark light"><style>{style}</style></head>
-  <body>
-    <div class="card">
+  <head><meta charset="utf-8"><meta name="color-scheme" content="dark light"></head>
+  <body style="font-family:Arial, sans-serif; background:#0b0f14; color:#e6edf3; padding:24px;">
+    <div style="background:#111826; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px; color:#e6edf3;">
       <div style="font-size:18px; font-weight:600; margin-bottom:6px;">📬 EPS/BVK dnevni izveštaj</div>
-      <div class="small">{datetime.now().strftime("%A, %d.%m.%Y.")} — Ulice posmatranja: {" • ".join(streets)}</div>
-      <div style="margin-top:10px;" class="small">{header_joke}</div>
+      <div style="opacity:.8; font-size:12px;">{datetime.now().strftime("%A, %d.%m.%Y.")} — Ulice posmatranja: {" • ".join(streets)}</div>
+      <div style="margin-top:10px; font-size:12px; opacity:.8;">{header_joke}</div>
     </div>
 """]
 
-    # Rezime bedževi
     if eps_hits:
-        html.append('<span class="badge danger">⚡ Struja: pronađeni pogoci</span>')
+        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #5b2121; background:#1a0e0e; color:#f97373;">⚡ Struja: pronađeni pogoci</div>')
     else:
-        html.append('<span class="badge ok">⚡ Struja: bez planiranih isključenja</span>')
+        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #1f513f; background:#0e1c16; color:#34d399;">⚡ Struja: bez planiranih isključenja</div>')
     if bvk_hits:
-        html.append('<span class="badge warn">🚰 Voda: prijavljeni radovi/kvarovi</span>')
+        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #5a441a; background:#1a150a; color:#f59e0b;">🚰 Voda: prijavljeni radovi/kvarovi</div>')
     else:
-        html.append('<span class="badge ok">🚰 Voda: nema prijavljenih problema</span>')
+        html.append('<div style="display:inline-block; padding:6px 10px; border-radius:999px; font-size:12px; margin-right:8px; border:1px solid #1f513f; background:#0e1c16; color:#34d399;">🚰 Voda: nema prijavljenih problema</div>')
     html.append("<br><br>")
 
     # EPS
-    html.append('<div class="card"><div style="font-weight:600;margin-bottom:6px;">⚡ EPS (struja)</div>')
+    html.append('<div style="background:#111826; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px; color:#e6edf3;">')
+    html.append('<div style="font-weight:600;margin-bottom:6px;">⚡ EPS (struja)</div>')
     if eps_hits:
-        html.append('<div class="grid">')
         for h in eps_hits:
             html.append(f"""
-              <div class="card" style="padding:14px;">
+              <div style="background:#1a2432; border:1px solid #243244; border-radius:12px; padding:14px; margin-bottom:12px; color:#e6edf3;">
                 <div style="margin-bottom:6px;">
-                  <span class="pill">{'DANAS' if h['day']=='danas' else 'SUTRA'} • {h['date']}</span>
-                  <span class="pill">Opština: {h['opstina']}</span>
+                  <span style="display:inline-block; font-size:12px; padding:5px 10px; border-radius:999px; background:#243244; color:#e6edf3; margin:2px 6px 2px 0;">{'DANAS' if h['day']=='danas' else 'SUTRA'} • {h['date']}</span>
+                  <span style="display:inline-block; font-size:12px; padding:5px 10px; border-radius:999px; background:#243244; color:#e6edf3; margin:2px 6px 2px 0;">Opština: {h['opstina']}</span>
                 </div>
                 <div><strong>Vreme:</strong> {h['vreme']}</div>
                 <div style="margin-top:6px;"><strong>Ulice:</strong> {h['ulice']}</div>
-                <div class="small" style="margin-top:8px;">Izvor: <a href="{h['url']}">{h['url']}</a></div>
+                <div style="font-size:12px; opacity:.8; margin-top:8px;">Izvor: <a href="{h['url']}" style="color:#93c5fd;">{h['url']}</a></div>
               </div>
             """)
-        html.append('</div>')
-        html.append('<div class="small" style="margin-top:8px;">Tip: napunite baterije i skuvajte kafu unapred. ☕🔋</div>')
+        html.append('<div style="font-size:12px; opacity:.8; margin-top:8px;">Tip: napunite baterije i skuvajte kafu unapred. ☕🔋</div>')
     else:
         html.append('<div>✅ Nema planiranih isključenja za tražene ulice.</div>')
     html.append("</div>")
 
     # BVK
-    html.append('<div class="card"><div style="font-weight:600;margin-bottom:6px;">🚰 BVK (voda)</div>')
+    html.append('<div style="background:#111826; border:1px solid #1f2a37; border-radius:14px; padding:20px; margin-bottom:16px; color:#e6edf3;">')
+    html.append('<div style="font-weight:600;margin-bottom:6px;">🚰 BVK (voda)</div>')
     if bvk_hits:
-        html.append('<ul class="list">')
+        html.append('<ul style="margin:0; padding-left:18px;">')
         for raw in bvk_hits:
             html.append(f'<li>{raw}</li>')
         html.append('</ul>')
-        html.append(f'<div class="small" style="margin-top:8px;">Izvor: <a href="{BVK_URL}">{BVK_URL}</a></div>')
-        html.append('<div class="small" style="margin-top:8px;">Tip: napunite bokale — za svaki slučaj. 💧</div>')
+        html.append(f'<div style="font-size:12px; opacity:.8; margin-top:8px;">Izvor: <a href="{BVK_URL}" style="color:#93c5fd;">{BVK_URL}</a></div>')
+        html.append('<div style="font-size:12px; opacity:.8; margin-top:8px;">Tip: napunite bokale — za svaki slučaj. 💧</div>')
     else:
         html.append('<div>✅ Nema prijavljenih isključenja/kvarova vode za tražene ulice.</div>')
     html.append("</div>")
 
-    # Bez footera
-    html.append("""
-  </body>
-</html>
-""")
+    html.append("""</body></html>""")
     return "".join(html)
 
 def build_text_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets: List[str]) -> str:
@@ -253,8 +230,6 @@ def build_text_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
     lines.append(f"EPS/BVK dnevni izveštaj — {datetime.now().strftime('%A, %d.%m.%Y.')}")
     lines.append(f"Ulice posmatranja: {', '.join(streets)}")
     lines.append("")
-
-    # EPS
     lines.append("⚡ EPS (struja)")
     if eps_hits:
         for h in eps_hits:
@@ -263,8 +238,6 @@ def build_text_body(eps_hits: List[Dict[str, str]], bvk_hits: List[str], streets
     else:
         lines.append("• Nema planiranih isključenja za tražene ulice.")
     lines.append("")
-
-    # BVK
     lines.append("🚰 BVK (voda)")
     if bvk_hits:
         for raw in bvk_hits:
@@ -315,7 +288,6 @@ if __name__ == "__main__":
         eps_hits_all.extend(search_eps_hits(street))
         bvk_hits_all.extend(search_bvk_hits(street))
 
-    # uniq BVK linije
     bvk_hits_all = list(dict.fromkeys(bvk_hits_all))
 
     subject = build_subject(eps_hits_all, bvk_hits_all)
